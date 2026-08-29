@@ -6,6 +6,6 @@
 
 <p align="center">
   <a href="https://tokscale.ai/u/Shad0w23333">
-    <img src="https://tokscale.ai/api/embed/Shad0w23333/svg?theme=light&template=graph&tokens=compact&cost=compact" alt="Tokscale Stats" />
+    <img src="https://tokscale.ai/api/embed/Shad0w23333/svg?theme=light&template=graph&tokens=full&cost=compact" alt="Tokscale Stats" />
   </a>
 </p>
