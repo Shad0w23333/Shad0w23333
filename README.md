@@ -1,7 +1,7 @@
 <h1 align="center">Hi, I'm Shad0w23333</h1>
 
 <p align="center">
-  🌴 vibe coding · reverse engineering · AI-assisted development
+  🌴 ai is fun I guess
 </p>
 
 <p align="center">
