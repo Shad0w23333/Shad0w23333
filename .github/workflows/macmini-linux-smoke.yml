@@ -21,6 +21,10 @@ jobs:
         image: redis:7-alpine
         options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
+      - name: Install the common cache compression dependency
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y zstd
       - name: Verify current commit
         env:
           GH_TOKEN: ${{ github.token }}
