@@ -1,0 +1,30 @@
+name: Mac mini Linux reusable validation
+on:
+  workflow_call:
+    inputs:
+      cache-key:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: [self-hosted, Linux, ARM64, macmini-linux]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: .ci-cache
+          key: ${{ inputs.cache-key }}
+      - name: Verify cache from container matrix
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        run: |
+          test "$CACHE_HIT" = true
+          test "$(cat .ci-cache/value)" = "cache verified"
+      - name: Verify reusable workflow host
+        run: |
+          test "$(uname -s)" = Linux
+          test "$(uname -m)" = aarch64
+          docker info --format '{{.OSType}}' | python3 -c 'import sys; assert sys.stdin.read().strip()=="linux"'
