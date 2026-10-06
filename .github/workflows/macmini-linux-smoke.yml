@@ -67,6 +67,8 @@ jobs:
           fs.writeFileSync('.ci-cache/value','cache verified');
           fs.writeFileSync('linux-proof.json',JSON.stringify({sha:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,phase:process.env.PHASE,arch:process.arch,redis:'PONG',cacheHit:process.env.CACHE_HIT}));
           JS
+      - name: Make the CI cache owned by the host runner
+        run: chown -R "$(stat -c '%u:%g' "$GITHUB_WORKSPACE")" .ci-cache
       - uses: actions/upload-artifact@v4
         with:
           name: linux-proof-${{ matrix.phase }}-${{ github.run_id }}
