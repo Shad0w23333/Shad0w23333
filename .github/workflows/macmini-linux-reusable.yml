@@ -12,6 +12,8 @@ jobs:
     runs-on: [self-hosted, Linux, ARM64, macmini-linux]
     timeout-minutes: 10
     steps:
+      - name: Remove the CI fixture cache before restoring it
+        run: rm -rf .ci-cache
       - uses: actions/cache/restore@v4
         id: cache
         with:
