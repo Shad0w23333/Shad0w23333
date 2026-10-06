@@ -1,0 +1,77 @@
+name: Mac mini Linux capability checks
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: macmini-linux-capabilities
+  cancel-in-progress: false
+jobs:
+  containers:
+    if: github.actor == github.repository_owner
+    strategy:
+      max-parallel: 1
+      matrix:
+        phase: [first, second]
+    runs-on: [self-hosted, Linux, ARM64, macmini-linux]
+    timeout-minutes: 20
+    container: node:22-bookworm
+    services:
+      redis:
+        image: redis:7-alpine
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - name: Verify current commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const ref=process.env.GITHUB_REF.replace(/^refs\//,'');
+          const response=await fetch(`${process.env.GITHUB_API_URL}/repos/${process.env.GITHUB_REPOSITORY}/git/ref/${ref}`,{headers:{Authorization:`Bearer ${process.env.GH_TOKEN}`}});
+          assert.equal(response.status,200);
+          const data=await response.json();
+          assert.equal(data.object.sha,process.env.GITHUB_SHA,'Stale source commit');
+          JS
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: .ci-cache
+          key: linux-capability-cache-v1-${{ github.run_id }}
+      - name: Verify service networking and runtime
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          PHASE: ${{ matrix.phase }}
+        run: |
+          node --input-type=module <<'JS'
+          import net from 'node:net';
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          await new Promise((resolve,reject)=>{
+            const s=net.createConnection({host:'redis',port:6379});
+            s.setTimeout(10000,()=>{s.destroy();reject(new Error('Redis timeout'));});
+            s.on('error',reject);
+            s.on('connect',()=>s.write('*1\r\n$4\r\nPING\r\n'));
+            s.on('data',data=>{assert.match(data.toString(),/PONG/);s.end();resolve();});
+          });
+          assert.equal(process.platform,'linux');
+          assert.equal(process.arch,'arm64');
+          fs.mkdirSync('.ci-cache',{recursive:true});
+          fs.writeFileSync('.ci-cache/value','cache verified');
+          fs.writeFileSync('linux-proof.json',JSON.stringify({sha:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,phase:process.env.PHASE,arch:process.arch,redis:'PONG',cacheHit:process.env.CACHE_HIT}));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-proof-${{ matrix.phase }}-${{ github.run_id }}
+          path: linux-proof.json
+          retention-days: 7
+          if-no-files-found: error
+  reusable:
+    needs: containers
+    with:
+      cache-key: linux-capability-cache-v1-${{ github.run_id }}
+    if: github.actor == github.repository_owner
+    uses: ./.github/workflows/macmini-linux-reusable.yml
